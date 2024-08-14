@@ -759,6 +759,10 @@ jobs:
       module:
         description: Go Module Name
         type: string
+      uses_artifacts:
+        description: Include forge artifacts
+        type: boolean
+        default: false
     docker:
       - image: <<pipeline.parameters.ci_builder_image>> # only used to enable codecov.
     resource_class: xlarge
@@ -771,6 +775,15 @@ jobs:
           keys:
             - golang-build-cache-<<parameters.module>>
             - golang-build-cache-
+      - when:
+          condition: <<parameters.uses_artifacts>>
+          steps:
+            - attach_workspace:
+                at: /tmp/workspace
+            - run:
+                name: Load devnet-allocs and artifacts
+                command: |
+                  cp -r /tmp/workspace/packages/contracts-bedrock/forge-artifacts packages/contracts-bedrock/forge-artifacts
       - run:
           name: prep results dir
           command: mkdir -p /tmp/test-results &&  mkdir -p /testlogs
@@ -1528,7 +1541,8 @@ workflows:
       - go-test:
           name: op-chain-ops-tests
           module: op-chain-ops
-          requires: ["go-mod-download"]
+          uses_artifacts: true
+          requires: ["go-mod-download", "pnpm-monorepo"]
       - go-test:
           name: op-node-tests
           module: op-node
