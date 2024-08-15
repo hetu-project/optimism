@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/clock"
@@ -46,6 +47,7 @@ func (p peerBanUpdate) Apply(rec *peerBanRecord) {
 }
 
 type peerBanBook struct {
+	mu   sync.RWMutex
 	book *recordsBook[peer.ID, *peerBanRecord]
 }
 
@@ -62,8 +64,10 @@ func (d *peerBanBook) startGC() {
 }
 
 func (d *peerBanBook) GetPeerBanExpiration(id peer.ID) (time.Time, error) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	rec, err := d.book.getRecord(id)
-	if err == ErrUnknownRecord {
+	if err == errUnknownRecord {
 		return time.Time{}, ErrUnknownBan
 	}
 	if err != nil {
@@ -73,12 +77,12 @@ func (d *peerBanBook) GetPeerBanExpiration(id peer.ID) (time.Time, error) {
 }
 
 func (d *peerBanBook) SetPeerBanExpiration(id peer.ID, expirationTime time.Time) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	if expirationTime == (time.Time{}) {
 		return d.book.deleteRecord(id)
 	}
-	d.book.Lock()
-	defer d.book.Unlock()
-	_, err := d.book.SetRecord(id, peerBanUpdate(expirationTime))
+	_, err := d.book.setRecord(id, peerBanUpdate(expirationTime))
 	return err
 }
 

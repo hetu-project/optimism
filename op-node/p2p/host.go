@@ -286,8 +286,6 @@ func (conf *Config) Host(log log.Logger, reporter metrics.Reporter, metrics Host
 				return ping.Ping(ctx, h, peerID)
 			},
 			h.Network().Peers,
-			clock.SystemClock,
-			nil,
 		)
 	}
 

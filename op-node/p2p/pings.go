@@ -45,6 +45,14 @@ func NewPingService(
 	log log.Logger,
 	ping PingFn,
 	peers PeersFn,
+) *PingService {
+	return newTracedPingService(log, ping, peers, clock.SystemClock, nil)
+}
+
+func newTracedPingService(
+	log log.Logger,
+	ping PingFn,
+	peers PeersFn,
 	clock clock.Clock,
 	trace func(work string),
 ) *PingService {
